@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>树叶书签设计小工具 - 南京雨花外国语学校 · 苏超文创</title>
+    <style>
+        /* ========== 引入手写字体（网络字体，无需下载） ========== */
+        @import url('https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+        body {
+            background: #2e7d32;
+            background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0l25.98 15v30L30 60 4.02 45V15z' fill='none' stroke='%23ffffff' stroke-opacity='0.15' stroke-width='2'/%3E%3C/svg%3E");
+            background-size: 60px 60px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'ZCOOL KuaiLe', 'Comic Sans MS', '幼圆', 'YouYuan', '华文楷体', 'KaiTi', sans-serif;
+            padding: 20px;
+        }
+        .app {
+            display: flex;
+            gap: 20px;
+            background: #ffffff;
+            border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3), 0 0 0 4px #fdd835;
+            padding: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+            position: relative;
+        }
+        .app::before {
+            content: "SUPER JIANGSU";
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #fdd835;
+            color: #1b5e20;
+            padding: 4px 24px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            letter-spacing: 3px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            z-index: 5;
+        }
+        .app::after {
+            content: "⚽";
+            position: absolute;
+            bottom: -15px;
+            right: -15px;
+            font-size: 48px;
+            opacity: 0.3;
+            transform: rotate(-15deg);
+            pointer-events: none;
+        }
+
+        .sidebar {
+            width: 260px;
+            background: #f1f8e9;
+            border-radius: 20px;
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-height: 700px;
+            overflow-y: auto;
+            border: 2px solid #aed581;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .sidebar h3 {
+            font-size: 20px;
+            color: #1b5e20;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            border-bottom: 2px dashed #8bc34a;
+            padding-bottom: 8px;
+        }
+        .element-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .element-item {
+            width: 65px;
+            height: 65px;
+            background: white;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: grab;
+            border: 2px dashed #c8e6c9;
+            transition: all 0.2s;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+            overflow: hidden;
+            position: relative;
+        }
+        .element-item img {
+            width: 90%;
+            height: 90%;
+            object-fit: contain;
+            pointer-events: none;
+        }
+        .element-item:active {
+            cursor: grabbing;
+            opacity: 0.8;
+        }
+        .element-item:hover {
+            border-color: #fdd835;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+        }
+        .element-item[data-type="text"] { background: #fff9c4; }
+        .element-item[data-type="football"] { background: #e0f2f1; }
+        .element-item[data-type="food"] { background: #ffe0b2; }
+        .element-item[data-type="landscape"] { background: #dcedc8; }
+        .element-item[data-type="culture"] { background: #f8bbd0; }
+
+        .workspace {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .bookmark-frame {
+            position: relative;
+            width: 300px;
+            height: 600px;
+            background: #ffffff;
+            border: 4px solid #1b5e20;
+            border-radius: 14px 14px 6px 6px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.25), inset 0 0 0 2px #fdd835;
+            overflow: hidden;
+            background-image: 
+                linear-gradient(rgba(46,125,50,0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(46,125,50,0.05) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        .bookmark-frame::before {
+            content: "苏超·文创";
+            position: absolute;
+            bottom: 8px;
+            right: 10px;
+            font-size: 10px;
+            color: #aed581;
+            z-index: 20;
+            letter-spacing: 1px;
+        }
+        .hole {
+            position: absolute;
+            top: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 24px;
+            height: 24px;
+            background: #f1f8e9;
+            border: 3px solid #1b5e20;
+            border-radius: 50%;
+            z-index: 20;
+            box-shadow: 0 0 0 6px white;
+        }
+        .bookmark-label {
+            margin-top: 12px;
+            font-size: 14px;
+            color: #ffffff;
+            letter-spacing: 2px;
+            background: #1b5e20;
+            padding: 4px 16px;
+            border-radius: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .toolbar {
+            margin-top: 12px;
+            display: flex;
+            gap: 12px;
+        }
+        .btn {
+            padding: 10px 18px;
+            border: none;
+            border-radius: 25px;
+            background: #fdd835;
+            color: #1b5e20;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+            font-family: inherit;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            letter-spacing: 1px;
+        }
+        .btn:hover {
+            background: #fbc02d;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.2);
+        }
+        .btn.primary {
+            background: #1b5e20;
+            color: white;
+        }
+        .btn.primary:hover {
+            background: #2e7d32;
+        }
+        .section-title {
+            font-size: 13px;
+            color: #33691e;
+            margin: 4px 0 2px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .design-element {
+            position: absolute;
+            cursor: move;
+            transform-origin: center center;
+            transition: box-shadow 0.1s;
+        }
+        .design-element img {
+            width: 100%;
+            height: 100%;
+            display: block;
+            pointer-events: none;
+        }
+        .design-element.selected {
+            outline: 3px solid #fdd835;
+            outline-offset: 2px;
+            box-shadow: 0 0 12px rgba(253,216,53,0.6);
+            z-index: 10;
+        }
+        .resize-handle {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: #fdd835;
+            border: 2px solid #1b5e20;
+            border-radius: 3px;
+            display: none;
+        }
+        .design-element.selected .resize-handle {
+            display: block;
+        }
+        .resize-handle.nw { top: -6px; left: -6px; cursor: nw-resize; }
+        .resize-handle.ne { top: -6px; right: -6px; cursor: ne-resize; }
+        .resize-handle.sw { bottom: -6px; left: -6px; cursor: sw-resize; }
+        .resize-handle.se { bottom: -6px; right: -6px; cursor: se-resize; }
+        .rotate-handle {
+            position: absolute;
+            top: -26px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 22px;
+            height: 22px;
+            background: #1b5e20;
+            border: 2px solid #fdd835;
+            border-radius: 50%;
+            cursor: grab;
+            display: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        .design-element.selected .rotate-handle {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+<div class="app">
+    <!-- 左侧素材区 -->
+    <div class="sidebar">
+        <h3>⚽ 苏超元素库</h3>
+        <p style="font-size:12px;color:#558b2f;margin-bottom:5px;">拖拽或双击元素到书签底板上</p>
+        
+        <!-- ★文字标题类（全部改为图片占位，需要你自己提供艺术字PNG） -->
+        <div class="section-title">🔤 文字元素</div>
+        <div class="element-group" id="textGroup">
+            <div class="element-item" data-type="text" draggable="true"><img src="images/text_suchao.png" alt="苏超"></div>
+            <div class="element-item" data-type="text" draggable="true"><img src="images/text_nanjing.png" alt="南京"></div>
+            <div class="element-item" data-type="text" draggable="true"><img src="images/text_jiayou.png" alt="加油"></div>
+            <div class="element-item" data-type="text" draggable="true"><img src="images/text_zuqiu.png" alt="足球"></div>
+            <div class="element-item" data-type="text" draggable="true"><img src="images/text_champion.png" alt="CHAMPION"></div>
+            <div class="element-item" data-type="text" draggable="true"><img src="images/text_nanjing_en.png" alt="NANJING"></div>
+        </div>
+
+        <!-- 足球元素 -->
+        <div class="section-title">⚽ 足球元素</div>
+        <div class="element-group" id="footballGroup">
+            <div class="element-item" data-type="football" draggable="true"><img src="images/football.png" alt="足球"></div>
+            <div class="element-item" data-type="football" draggable="true"><img src="images/cup.png" alt="奖杯"></div>
+            <div class="element-item" data-type="football" draggable="true"><img src="images/stadium.png" alt="球场"></div>
+            <div class="element-item" data-type="football" draggable="true"><img src="images/goal.png" alt="球门"></div>
+            <div class="element-item" data-type="football" draggable="true"><img src="images/boot.png" alt="球鞋"></div>
+        </div>
+
+        <!-- 南京美食 -->
+        <div class="section-title">🍜 南京美食</div>
+        <div class="element-group" id="foodGroup">
+            <div class="element-item" data-type="food" draggable="true"><img src="images/duck.png" alt="盐水鸭"></div>
+            <div class="element-item" data-type="food" draggable="true"><img src="images/noodles.png" alt="鸭血粉丝"></div>
+            <div class="element-item" data-type="food" draggable="true"><img src="images/dumpling.png" alt="汤包"></div>
+            <div class="element-item" data-type="food" draggable="true"><img src="images/skewer.png" alt="串串"></div>
+        </div>
+
+        <!-- 南京景点 -->
+        <div class="section-title">🏯 南京景点</div>
+        <div class="element-group" id="landscapeGroup">
+            <div class="element-item" data-type="landscape" draggable="true"><img src="images/zhonghua.png" alt="中华门"></div>
+            <div class="element-item" data-type="landscape" draggable="true"><img src="images/temple.png" alt="夫子庙"></div>
+            <div class="element-item" data-type="landscape" draggable="true"><img src="images/bridge.png" alt="长江大桥"></div>
+            <div class="element-item" data-type="landscape" draggable="true"><img src="images/blossom.png" alt="梅花"></div>
+            <div class="element-item" data-type="landscape" draggable="true"><img src="images/xuanwu.png" alt="玄武湖"></div>
+        </div>
+
+        <!-- 非遗文化 -->
+        <div class="section-title">🎭 非遗文化</div>
+        <div class="element-group" id="cultureGroup">
+            <div class="element-item" data-type="culture" draggable="true"><img src="images/brocade.png" alt="云锦"></div>
+            <div class="element-item" data-type="culture" draggable="true"><img src="images/lantern.png" alt="灯彩"></div>
+            <div class="element-item" data-type="culture" draggable="true"><img src="images/cut.png" alt="剪纸"></div>
+            <div class="element-item" data-type="culture" draggable="true"><img src="images/velvet.png" alt="绒花"></div>
+            <div class="element-item" data-type="culture" draggable="true"><img src="images/gold.png" alt="金箔"></div>
+        </div>
+
+        <div style="margin-top:auto; font-size:11px; color:#558b2f; text-align:center;">
+            ⭐ 单击选中 → 拖动/缩放/旋转<br>按 <strong>Delete</strong> 删除
+        </div>
+    </div>
+
+    <!-- 右侧工作区 -->
+    <div class="workspace">
+        <div class="bookmark-frame" id="bookmark">
+            <div class="hole"></div>
+        </div>
+        <div class="toolbar">
+            <button class="btn primary" id="exportBtn">📷 保存设计</button>
+            <button class="btn" id="clearBtn">🗑️ 清空底板</button>
+        </div>
+        <div class="bookmark-label">南京雨花外国语学校 · 苏超文创书签</div>
+    </div>
+</div>
+
+<script>
+    (function() {
+        const bookmark = document.getElementById('bookmark');
+        
+        // 获取素材数据（现在所有素材都是图片）
+        function getItemData(item) {
+            const img = item.querySelector('img');
+            if (img) {
+                return {
+                    type: 'image',
+                    src: img.src,
+                    alt: img.alt || '',
+                    dataType: item.dataset.type
+                };
+            }
+            // 兜底（理论上不会执行）
+            return null;
+        }
+
+        const elementItems = document.querySelectorAll('.element-item');
+        let dragData = null;
+
+        elementItems.forEach(item => {
+            item.addEventListener('dragstart', function(e) {
+                dragData = getItemData(this);
+                e.dataTransfer.setData('text/plain', 'dummy');
+                e.dataTransfer.effectAllowed = 'move';
+            });
+            // 双击添加到底板中央
+            item.addEventListener('dblclick', function(e) {
+                const data = getItemData(this);
+                if (!data) return;
+                const cx = 150, cy = 300;
+                createImageElement(data.src, cx, cy, data.dataType, data.alt);
+            });
+        });
+
+        bookmark.addEventListener('dragover', (e) => e.preventDefault());
+        bookmark.addEventListener('drop', function(e) {
+            e.preventDefault();
+            if (!dragData) return;
+            const rect = bookmark.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            createImageElement(dragData.src, x, y, dragData.dataType, dragData.alt);
+            dragData = null;
+        });
+
+        // 创建图片元素（底板上的可编辑对象）
+        function createImageElement(src, x, y, dataType, altText) {
+            const container = document.createElement('div');
+            container.className = 'design-element';
+            container.dataset.type = dataType || '';
+            
+            const tempImg = new Image();
+            tempImg.onload = function() {
+                const maxDim = 150;
+                let w = tempImg.naturalWidth;
+                let h = tempImg.naturalHeight;
+                if (w > maxDim || h > maxDim) {
+                    const ratio = Math.min(maxDim / w, maxDim / h);
+                    w *= ratio;
+                    h *= ratio;
+                }
+                container.style.width = w + 'px';
+                container.style.height = h + 'px';
+                container.style.left = Math.max(0, x - w/2) + 'px';
+                container.style.top = Math.max(0, y - h/2) + 'px';
+            };
+            tempImg.onerror = function() {
+                // 图片加载失败时显示红色提示
+                container.style.width = '100px';
+                container.style.height = '40px';
+                container.style.left = Math.max(0, x - 50) + 'px';
+                container.style.top = Math.max(0, y - 20) + 'px';
+                container.style.background = '#ffcdd2';
+                container.style.border = '1px solid #b71c1c';
+                container.style.display = 'flex';
+                container.style.alignItems = 'center';
+                container.style.justifyContent = 'center';
+                container.style.fontSize = '12px';
+                container.style.color = '#b71c1c';
+                container.style.fontWeight = 'bold';
+                container.textContent = '❌ ' + (altText || '图片未找到');
+                container.style.padding = '4px';
+            };
+            tempImg.src = src;
+
+            const img = document.createElement('img');
+            img.src = src;
+            img.alt = altText || '';
+            img.draggable = false;
+            container.appendChild(img);
+            container.style.transform = 'rotate(0deg)';
+
+            addHandles(container);
+            bookmark.appendChild(container);
+            clearSelection();
+            container.classList.add('selected');
+        }
+
+        // 添加缩放、旋转把手
+        function addHandles(el) {
+            const positions = ['nw','ne','sw','se'];
+            positions.forEach(pos => {
+                const handle = document.createElement('div');
+                handle.className = `resize-handle ${pos}`;
+                handle.addEventListener('mousedown', resizeStart);
+                el.appendChild(handle);
+            });
+            const rotateHandle = document.createElement('div');
+            rotateHandle.className = 'rotate-handle';
+            rotateHandle.addEventListener('mousedown', rotateStart);
+            el.appendChild(rotateHandle);
+            el.addEventListener('mousedown', elementDragStart);
+        }
+
+        function clearSelection() {
+            document.querySelectorAll('.design-element.selected').forEach(el => el.classList.remove('selected'));
+        }
+
+        bookmark.addEventListener('click', function(e) {
+            if (e.target === bookmark) clearSelection();
+        });
+        bookmark.addEventListener('click', function(e) {
+            const designEl = e.target.closest('.design-element');
+            if (designEl) {
+                clearSelection();
+                designEl.classList.add('selected');
+                e.stopPropagation();
+            }
+        });
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Delete' || e.key === 'Backspace') {
+                const selected = document.querySelector('.design-element.selected');
+                if (selected) {
+                    selected.remove();
+                    e.preventDefault();
+                }
+            }
+        });
+
+        // 拖动
+        let dragTarget = null, startMouseX, startMouseY, startLeft, startTop;
+        function elementDragStart(e) {
+            if (e.target.classList.contains('resize-handle') || e.target.classList.contains('rotate-handle')) return;
+            const designEl = e.target.closest('.design-element');
+            if (!designEl) return;
+            e.preventDefault();
+            clearSelection();
+            designEl.classList.add('selected');
+            dragTarget = designEl;
+            startMouseX = e.clientX;
+            startMouseY = e.clientY;
+            startLeft = parseInt(designEl.style.left) || 0;
+            startTop = parseInt(designEl.style.top) || 0;
+            window.addEventListener('mousemove', elementDragMove);
+            window.addEventListener('mouseup', elementDragEnd);
+        }
+        function elementDragMove(e) {
+            if (!dragTarget) return;
+            const dx = e.clientX - startMouseX;
+            const dy = e.clientY - startMouseY;
+            let newLeft = startLeft + dx;
+            let newTop = startTop + dy;
+            const bookmarkRect = bookmark.getBoundingClientRect();
+            const elW = dragTarget.offsetWidth;
+            const elH = dragTarget.offsetHeight;
+            newLeft = Math.max(0, Math.min(newLeft, bookmarkRect.width - elW));
+            newTop = Math.max(0, Math.min(newTop, bookmarkRect.height - elH));
+            dragTarget.style.left = newLeft + 'px';
+            dragTarget.style.top = newTop + 'px';
+        }
+        function elementDragEnd() {
+            window.removeEventListener('mousemove', elementDragMove);
+            window.removeEventListener('mouseup', elementDragEnd);
+            dragTarget = null;
+        }
+
+        // 缩放
+        let resizeTarget = null, resizeDir, startW, startH, startL, startT, startMX, startMY;
+        function resizeStart(e) {
+            e.stopPropagation(); e.preventDefault();
+            const designEl = e.target.closest('.design-element');
+            if (!designEl) return;
+            resizeTarget = designEl;
+            resizeDir = e.target.className.split(' ')[1];
+            startW = parseInt(designEl.style.width) || designEl.offsetWidth;
+            startH = parseInt(designEl.style.height) || designEl.offsetHeight;
+            startL = parseInt(designEl.style.left);
+            startT = parseInt(designEl.style.top);
+            startMX = e.clientX;
+            startMY = e.clientY;
+            window.addEventListener('mousemove', resizeMove);
+            window.addEventListener('mouseup', resizeEnd);
+        }
+        function resizeMove(e) {
+            if (!resizeTarget) return;
+            const dx = e.clientX - startMX;
+            const dy = e.clientY - startMY;
+            let newW = startW, newH = startH, newL = startL, newT = startT;
+            const minSize = 15;
+            const bookmarkRect = bookmark.getBoundingClientRect();
+            if (resizeDir.includes('e')) {
+                newW = Math.max(minSize, startW + dx);
+                newW = Math.min(newW, bookmarkRect.width - startL);
+            }
+            if (resizeDir.includes('w')) {
+                newW = Math.max(minSize, startW - dx);
+                newL = startL + (startW - newW);
+                if (newL < 0) { newW = startW + startL; newL = 0; }
+            }
+            if (resizeDir.includes('s')) {
+                newH = Math.max(minSize, startH + dy);
+                newH = Math.min(newH, bookmarkRect.height - startT);
+            }
+            if (resizeDir.includes('n')) {
+                newH = Math.max(minSize, startH - dy);
+                newT = startT + (startH - newH);
+                if (newT < 0) { newH = startH + startT; newT = 0; }
+            }
+            resizeTarget.style.width = newW + 'px';
+            resizeTarget.style.height = newH + 'px';
+            resizeTarget.style.left = newL + 'px';
+            resizeTarget.style.top = newT + 'px';
+        }
+        function resizeEnd() {
+            window.removeEventListener('mousemove', resizeMove);
+            window.removeEventListener('mouseup', resizeEnd);
+            resizeTarget = null;
+        }
+
+        // 旋转
+        let rotateTarget = null, startAngle, startRotation;
+        function rotateStart(e) {
+            e.stopPropagation(); e.preventDefault();
+            const designEl = e.target.closest('.design-element');
+            if (!designEl) return;
+            rotateTarget = designEl;
+            const rect = designEl.getBoundingClientRect();
+            const centerX = rect.left + rect.width/2;
+            const centerY = rect.top + rect.height/2;
+            startAngle = Math.atan2(e.clientY - centerY, e.clientX - centerX);
+            const transform = designEl.style.transform;
+            const match = transform.match(/rotate\(([-\d.]+)deg\)/);
+            startRotation = match ? parseFloat(match[1]) : 0;
+            window.addEventListener('mousemove', rotateMove);
+            window.addEventListener('mouseup', rotateEnd);
+        }
+        function rotateMove(e) {
+            if (!rotateTarget) return;
+            const rect = rotateTarget.getBoundingClientRect();
+            const centerX = rect.left + rect.width/2;
+            const centerY = rect.top + rect.height/2;
+            const currentAngle = Math.atan2(e.clientY - centerY, e.clientX - centerX);
+            let delta = (currentAngle - startAngle) * (180 / Math.PI);
+            let newRotation = startRotation + delta;
+            rotateTarget.style.transform = `rotate(${newRotation}deg)`;
+        }
+        function rotateEnd() {
+            window.removeEventListener('mousemove', rotateMove);
+            window.removeEventListener('mouseup', rotateEnd);
+            rotateTarget = null;
+        }
+
+        document.getElementById('exportBtn').addEventListener('click', () => {
+            alert('使用截图工具（Ctrl+Shift+S）截取书签区域即可保存。');
+        });
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            bookmark.querySelectorAll('.design-element').forEach(el => el.remove());
+        });
+        bookmark.addEventListener('dragstart', (e) => {
+            if (e.target.closest('.design-element')) e.preventDefault();
+        });
+    })();
+</script>
+</body>
+</html>
